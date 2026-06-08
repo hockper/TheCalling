@@ -1,3 +1,4 @@
+// Package delivery provides the HTTP delivery layer for the request module.
 package delivery
 
 import (

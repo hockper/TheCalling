@@ -1,3 +1,4 @@
+// Package repository provides the data access layer for the request module.
 package repository
 
 import (
@@ -97,7 +98,7 @@ func (r *PostgresUserRepository) List(ctx context.Context, role string) ([]*doma
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }() //nolint:errcheck
 
 	var users []*domain.User
 	for rows.Next() {

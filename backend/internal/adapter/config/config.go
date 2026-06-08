@@ -1,3 +1,4 @@
+// Package config manages configuration for the application.
 package config
 
 import (
@@ -5,6 +6,7 @@ import (
 	"os"
 )
 
+// Config holds the configuration values for the application.
 type Config struct {
 	Port        string
 	DatabaseURL string
@@ -13,6 +15,7 @@ type Config struct {
 	Env         string
 }
 
+// Load reads the configuration from environment variables.
 func Load() (*Config, error) {
 	port := getEnv("PORT", "8080")
 	dbURL := os.Getenv("DATABASE_URL")

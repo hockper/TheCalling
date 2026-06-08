@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"backend/internal/adapter/cache"
 	"backend/internal/adapter/config"
@@ -24,13 +25,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }() //nolint:errcheck
 
 	redisClient, err := cache.InitRedis(cfg.RedisURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
-	defer redisClient.Close()
+	defer func() { _ = redisClient.Close() }() //nolint:errcheck
 
 	// Initialize repositories
 	requestRepo := repository.NewPostgresRequestRepository(database)
@@ -65,7 +66,12 @@ func main() {
 	mux.Handle("/api/requests/", authMW(http.HandlerFunc(requestHandler.HandleRequestByID)))
 
 	log.Printf("Server starting on port %s in %s mode", cfg.Port, cfg.Env)
-	if err := http.ListenAndServe(":"+cfg.Port, mux); err != nil {
+	server := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           mux,
+		ReadHeaderTimeout: 3 * time.Second,
+	}
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }

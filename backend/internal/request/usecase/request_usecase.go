@@ -1,3 +1,4 @@
+// Package usecase provides the business logic for the request module.
 package usecase
 
 import (
@@ -102,7 +103,7 @@ func (u *RequestUsecaseImpl) GetByID(ctx context.Context, id string, userID stri
 
 // List retrieves a paginated list of service requests.
 // Handlers see all requests. Requesters only see their own.
-func (u *RequestUsecaseImpl) List(ctx context.Context, filter domain.ListRequestsFilter, userRole string) (*domain.RequestListResult, error) {
+func (u *RequestUsecaseImpl) List(ctx context.Context, filter domain.ListRequestsFilter, _ string) (*domain.RequestListResult, error) {
 	// Enforce default limits
 	if filter.Limit <= 0 {
 		filter.Limit = 20

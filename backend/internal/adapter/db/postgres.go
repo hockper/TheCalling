@@ -1,3 +1,4 @@
+// Package db manages the database connection and migrations.
 package db
 
 import (
@@ -6,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // PostgreSQL driver required for database/sql
 )
 
 //go:embed migrations/*.sql

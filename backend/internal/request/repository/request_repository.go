@@ -1,3 +1,4 @@
+// Package repository provides the data access layer for the request module.
 package repository
 
 import (
@@ -97,6 +98,7 @@ func (r *PostgresRequestRepository) List(ctx context.Context, filter domain.List
 	}
 
 	// Get total count
+	//nolint:gosec // query parts are safely constructed without user input
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM service_requests %s", whereClause)
 	var total int
 	err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&total)
@@ -105,6 +107,7 @@ func (r *PostgresRequestRepository) List(ctx context.Context, filter domain.List
 	}
 
 	// Get paginated results
+	//nolint:gosec // query parts are safely constructed without user input
 	dataQuery := fmt.Sprintf(`
 		SELECT id, title, description, priority, status, creator_id, assignee_id, created_at, updated_at
 		FROM service_requests
@@ -119,7 +122,7 @@ func (r *PostgresRequestRepository) List(ctx context.Context, filter domain.List
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }() //nolint:errcheck
 
 	var requests []domain.ServiceRequest
 	for rows.Next() {
@@ -202,6 +205,7 @@ func (r *PostgresRequestRepository) Update(ctx context.Context, id string, input
 	// Add the ID as the last argument
 	args = append(args, id)
 
+	//nolint:gosec // query parts are safely constructed without user input
 	query := fmt.Sprintf(`
 		UPDATE service_requests
 		SET %s

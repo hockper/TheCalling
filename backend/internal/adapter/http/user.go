@@ -1,3 +1,4 @@
+// Package http provides HTTP handlers and routers.
 package http
 
 import (

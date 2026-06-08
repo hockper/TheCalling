@@ -1,3 +1,4 @@
+// Package domain provides core business models and interfaces.
 package domain
 
 import (
@@ -8,6 +9,7 @@ import (
 // Priority represents the priority level of a service request.
 type Priority string
 
+// Priority constants defining urgency of requests.
 const (
 	PriorityLow    Priority = "low"
 	PriorityMedium Priority = "medium"
@@ -26,6 +28,7 @@ func (p Priority) IsValid() bool {
 // Status represents the lifecycle state of a service request.
 type Status string
 
+// Status constants defining the lifecycle state of requests.
 const (
 	StatusOpen       Status = "open"
 	StatusInProgress Status = "in_progress"
@@ -45,6 +48,7 @@ func (s Status) IsValid() bool {
 // Role represents the user role in the system.
 type Role string
 
+// Role constants defining user permissions.
 const (
 	RoleRequester Role = "requester"
 	RoleHandler   Role = "handler"

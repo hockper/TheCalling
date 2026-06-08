@@ -11,7 +11,6 @@ import (
 // mockRequestRepo is a simple in-memory mock for testing.
 type mockRequestRepo struct {
 	requests map[string]*domain.ServiceRequest
-	nextID   int
 }
 
 func newMockRequestRepo() *mockRequestRepo {
@@ -20,12 +19,12 @@ func newMockRequestRepo() *mockRequestRepo {
 	}
 }
 
-func (m *mockRequestRepo) Create(ctx context.Context, req *domain.ServiceRequest) error {
+func (m *mockRequestRepo) Create(_ context.Context, req *domain.ServiceRequest) error {
 	m.requests[req.ID] = req
 	return nil
 }
 
-func (m *mockRequestRepo) GetByID(ctx context.Context, id string) (*domain.ServiceRequest, error) {
+func (m *mockRequestRepo) GetByID(_ context.Context, id string) (*domain.ServiceRequest, error) {
 	req, ok := m.requests[id]
 	if !ok {
 		return nil, nil
@@ -33,7 +32,7 @@ func (m *mockRequestRepo) GetByID(ctx context.Context, id string) (*domain.Servi
 	return req, nil
 }
 
-func (m *mockRequestRepo) List(ctx context.Context, filter domain.ListRequestsFilter) (*domain.RequestListResult, error) {
+func (m *mockRequestRepo) List(_ context.Context, filter domain.ListRequestsFilter) (*domain.RequestListResult, error) {
 	var results []domain.ServiceRequest
 	for _, req := range m.requests {
 		if filter.CreatorID != nil && req.CreatorID != *filter.CreatorID {
@@ -59,7 +58,7 @@ func (m *mockRequestRepo) List(ctx context.Context, filter domain.ListRequestsFi
 	}, nil
 }
 
-func (m *mockRequestRepo) Update(ctx context.Context, id string, input domain.UpdateRequestInput) (*domain.ServiceRequest, error) {
+func (m *mockRequestRepo) Update(_ context.Context, id string, input domain.UpdateRequestInput) (*domain.ServiceRequest, error) {
 	req, ok := m.requests[id]
 	if !ok {
 		return nil, nil
@@ -112,7 +111,7 @@ func newMockUserRepo() *mockUserRepo {
 	}
 }
 
-func (m *mockUserRepo) GetByID(ctx context.Context, id string) (*domain.User, error) {
+func (m *mockUserRepo) GetByID(_ context.Context, id string) (*domain.User, error) {
 	user, ok := m.users[id]
 	if !ok {
 		return nil, nil
@@ -120,7 +119,7 @@ func (m *mockUserRepo) GetByID(ctx context.Context, id string) (*domain.User, er
 	return user, nil
 }
 
-func (m *mockUserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+func (m *mockUserRepo) GetByEmail(_ context.Context, email string) (*domain.User, error) {
 	for _, user := range m.users {
 		if user.Email == email {
 			return user, nil
@@ -129,7 +128,7 @@ func (m *mockUserRepo) GetByEmail(ctx context.Context, email string) (*domain.Us
 	return nil, nil
 }
 
-func (m *mockUserRepo) List(ctx context.Context, role string) ([]*domain.User, error) {
+func (m *mockUserRepo) List(_ context.Context, role string) ([]*domain.User, error) {
 	var users []*domain.User
 	for _, user := range m.users {
 		if role == "" || string(user.Role) == role {

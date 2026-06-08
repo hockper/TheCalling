@@ -1,3 +1,4 @@
+// Package http provides HTTP handlers and routers.
 package http
 
 import (
@@ -8,15 +9,18 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// HealthHandler responds to health check requests.
 type HealthHandler struct {
 	db  *sql.DB
 	rdb *redis.Client
 }
 
+// NewHealthHandler creates a new HealthHandler.
 func NewHealthHandler(db *sql.DB, rdb *redis.Client) *HealthHandler {
 	return &HealthHandler{db: db, rdb: rdb}
 }
 
+// HealthResponse represents the health check response body.
 type HealthResponse struct {
 	Status   string `json:"status"`
 	Database string `json:"database"`

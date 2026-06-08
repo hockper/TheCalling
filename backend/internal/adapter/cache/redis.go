@@ -1,3 +1,4 @@
+// Package cache provides caching functionality.
 package cache
 
 import (
@@ -8,6 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// InitRedis connects to a Redis instance using the provided URL.
 func InitRedis(url string) (*redis.Client, error) {
 	opts, err := redis.ParseURL(url)
 	if err != nil {
