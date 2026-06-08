@@ -158,7 +158,7 @@ func (h *UserHandler) Me(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		token, err := jwt.Parse(cookie.Value, func(t *jwt.Token) (interface{}, error) {
+		token, err := jwt.Parse(cookie.Value, func(_ *jwt.Token) (interface{}, error) {
 			return h.jwtSecret, nil
 		})
 		if err != nil || !token.Valid {
@@ -233,7 +233,7 @@ func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 // Logout clears the authenticated user's JWT cookie.
-func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) Logout(w http.ResponseWriter, _ *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "token",
 		Value:    "",
