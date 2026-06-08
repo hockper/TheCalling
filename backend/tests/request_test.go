@@ -129,6 +129,16 @@ func (m *mockUserRepo) GetByEmail(ctx context.Context, email string) (*domain.Us
 	return nil, nil
 }
 
+func (m *mockUserRepo) List(ctx context.Context, role string) ([]*domain.User, error) {
+	var users []*domain.User
+	for _, user := range m.users {
+		if role == "" || string(user.Role) == role {
+			users = append(users, user)
+		}
+	}
+	return users, nil
+}
+
 func TestCreateRequest_Success(t *testing.T) {
 	reqRepo := newMockRequestRepo()
 	userRepo := newMockUserRepo()
