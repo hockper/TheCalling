@@ -8,7 +8,7 @@
 import type { NewRequestPriority } from './newRequestPriority';
 
 export interface NewRequest {
-  assignee_id: string;
+  assignee_id?: string;
   description: string;
   priority: NewRequestPriority;
   title: string;

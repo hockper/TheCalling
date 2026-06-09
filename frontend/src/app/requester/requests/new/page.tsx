@@ -37,7 +37,6 @@ export default function NewRequestPage() {
     const errors: Record<string, string> = {};
     if (!title.trim()) errors.title = 'Title is required';
     if (!description.trim()) errors.description = 'Description is required';
-    if (!assigneeId.trim()) errors.assignee_id = 'Assignee selection is required';
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -54,7 +53,7 @@ export default function NewRequestPage() {
         title: title.trim(),
         description: description.trim(),
         priority,
-        assignee_id: assigneeId.trim(),
+        ...(assigneeId ? { assignee_id: assigneeId } : {}),
       });
       router.push('/requester/requests');
     } catch (err: any) {
@@ -123,21 +122,20 @@ export default function NewRequestPage() {
 
           {/* Assignee Selection */}
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Assignee <span style={styles.required}>*</span></label>
+            <label style={styles.label}>Assignee</label>
             <select
               value={assigneeId}
-              onChange={(e) => { setAssigneeId(e.target.value); setFieldErrors((p) => ({ ...p, assignee_id: '' })); }}
-              style={{ ...styles.select, ...(fieldErrors.assignee_id ? styles.inputError : {}) }}
+              onChange={(e) => setAssigneeId(e.target.value)}
+              style={styles.select}
               disabled={loadingHandlers}
             >
-              <option value="">-- Select Assignee --</option>
+              <option value="">-- Automatic Distribution --</option>
               {handlers.map((h) => (
                 <option key={h.id} value={h.id}>
                   {h.name}
                 </option>
               ))}
             </select>
-            {fieldErrors.assignee_id && <span style={styles.fieldError}>{fieldErrors.assignee_id}</span>}
           </div>
 
           {/* Actions */}

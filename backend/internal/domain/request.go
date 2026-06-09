@@ -82,7 +82,7 @@ type CreateRequestInput struct {
 	Title       string   `json:"title"`
 	Description string   `json:"description"`
 	Priority    Priority `json:"priority"`
-	AssigneeID  string   `json:"assignee_id"`
+	AssigneeID  string   `json:"assignee_id,omitempty"`
 	CreatorID   string   // Set by the system, not by the user
 }
 
@@ -97,9 +97,11 @@ type UpdateRequestInput struct {
 
 // ListRequestsFilter holds pagination and filtering parameters for listing requests.
 type ListRequestsFilter struct {
-	Limit     int
-	Offset    int
-	CreatorID *string // If set, only returns requests from this creator
+	Limit      int
+	Offset     int
+	CreatorID  *string // If set, only returns requests from this creator
+	AssigneeID *string // If set, only returns requests assigned to this user
+	Scope      string  // "me" or "all"
 }
 
 // RequestListResult holds a paginated list of service requests and the total count.
@@ -114,6 +116,7 @@ type RequestRepository interface {
 	GetByID(ctx context.Context, id string) (*ServiceRequest, error)
 	List(ctx context.Context, filter ListRequestsFilter) (*RequestListResult, error)
 	Update(ctx context.Context, id string, input UpdateRequestInput) (*ServiceRequest, error)
+	GetHandlerWithFewestRequests(ctx context.Context) (string, error)
 }
 
 // UserRepository defines the data access interface for users.

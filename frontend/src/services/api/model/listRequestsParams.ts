@@ -5,6 +5,7 @@
  * Central API contract for The Calling backend and frontend service integration.
  * OpenAPI spec version: 1.1.0
  */
+import type { ListRequestsScope } from './listRequestsScope';
 
 export type ListRequestsParams = {
 /**
@@ -15,4 +16,12 @@ limit?: number;
  * Number of requests to skip.
  */
 offset?: number;
+/**
+ * Scope of requests to retrieve. Handlers only.
+ */
+scope?: ListRequestsScope;
+/**
+ * Filter requests by assignee ID. Handlers only.
+ */
+assignee_id?: string;
 };

@@ -53,20 +53,23 @@ func (u *RequestUsecaseImpl) Create(ctx context.Context, input domain.CreateRequ
 	if !input.Priority.IsValid() {
 		return nil, ErrInvalidPriority
 	}
-	if input.AssigneeID == "" {
-		return nil, ErrAssigneeRequired
-	}
-
-	// Validate that the assignee exists
-	assignee, err := u.userRepo.GetByID(ctx, input.AssigneeID)
-	if err != nil {
-		return nil, err
-	}
-	if assignee == nil {
-		return nil, ErrAssigneeNotFound
-	}
-
 	assigneeID := input.AssigneeID
+	if assigneeID == "" {
+		handlerID, err := u.requestRepo.GetHandlerWithFewestRequests(ctx)
+		if err != nil {
+			return nil, err
+		}
+		assigneeID = handlerID
+	} else {
+		// Validate that the assignee exists
+		assignee, err := u.userRepo.GetByID(ctx, assigneeID)
+		if err != nil {
+			return nil, err
+		}
+		if assignee == nil {
+			return nil, ErrAssigneeNotFound
+		}
+	}
 	req := &domain.ServiceRequest{
 		Title:       input.Title,
 		Description: input.Description,

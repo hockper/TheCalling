@@ -29,8 +29,9 @@ export default function Login() {
       <h2 style={styles.title}>Secure Login</h2>
       <form onSubmit={handleSubmit} style={styles.form}>
         <div style={styles.inputGroup}>
-          <label style={styles.label}>Email Address</label>
+          <label htmlFor="email" style={styles.label}>Email Address</label>
           <input
+            id="email"
             type="email"
             required
             value={email}
@@ -40,8 +41,9 @@ export default function Login() {
           />
         </div>
         <div style={styles.inputGroup}>
-          <label style={styles.label}>Password</label>
+          <label htmlFor="password" style={styles.label}>Password</label>
           <input
+            id="password"
             type="password"
             required
             value={password}

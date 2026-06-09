@@ -202,6 +202,19 @@ paths:
             type: integer
             default: 0
           description: Number of requests to skip.
+        - in: query
+          name: scope
+          schema:
+            type: string
+            enum: [me, all]
+            default: me
+          description: Scope of requests to retrieve. Handlers only.
+        - in: query
+          name: assignee_id
+          schema:
+            type: string
+            format: uuid
+          description: Filter requests by assignee ID. Handlers only.
       responses:
         '200':
           description: A paginated list of requests.
@@ -309,7 +322,6 @@ components:
         - title
         - description
         - priority
-        - assignee_id
       properties:
         title:
           type: string

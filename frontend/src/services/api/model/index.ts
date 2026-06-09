@@ -11,6 +11,7 @@ export * from './getApiUsersMe401';
 export * from './getHealth200';
 export * from './getHealth503';
 export * from './listRequestsParams';
+export * from './listRequestsScope';
 export * from './listUsersParams';
 export * from './listUsersRole';
 export * from './newRequest';

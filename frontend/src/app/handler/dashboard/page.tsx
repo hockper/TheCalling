@@ -2,59 +2,30 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { getApiRequests } from '../../../services/api';
+import { getApiRequests, updateRequest, listUsers } from '../../../services/api';
+import { KanbanBoard } from '../../../components/kanban/KanbanBoard';
+import { ToggleSwitch } from '../../../components/common/ToggleSwitch';
 import type { ServiceRequest } from '../../../services/api/model/serviceRequest';
 
-const PAGE_SIZE = 20;
-
-const priorityBadge = (priority: string | undefined): React.CSSProperties => {
-  const map: Record<string, { bg: string; color: string; border: string }> = {
-    high: { bg: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: 'rgba(239, 68, 68, 0.3)' },
-    medium: { bg: 'rgba(234, 179, 8, 0.15)', color: '#facc15', border: 'rgba(234, 179, 8, 0.3)' },
-    low: { bg: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: 'rgba(34, 197, 94, 0.3)' },
-  };
-  const s = map[priority || ''] || map.low;
-  return {
-    fontSize: '0.75rem', fontWeight: 700, background: s.bg, color: s.color,
-    padding: '0.25rem 0.75rem', borderRadius: '20px', border: `1px solid ${s.border}`,
-    letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap',
-  };
-};
-
-const statusBadge = (status: string | undefined): React.CSSProperties => {
-  const map: Record<string, { bg: string; color: string; border: string }> = {
-    open: { bg: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: 'rgba(59, 130, 246, 0.3)' },
-    in_progress: { bg: 'rgba(234, 179, 8, 0.15)', color: '#facc15', border: 'rgba(234, 179, 8, 0.3)' },
-    resolved: { bg: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: 'rgba(34, 197, 94, 0.3)' },
-    closed: { bg: 'rgba(100, 116, 139, 0.15)', color: '#94a3b8', border: 'rgba(100, 116, 139, 0.3)' },
-  };
-  const s = map[status || ''] || map.open;
-  return {
-    fontSize: '0.75rem', fontWeight: 700, background: s.bg, color: s.color,
-    padding: '0.25rem 0.75rem', borderRadius: '20px', border: `1px solid ${s.border}`,
-    letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap',
-  };
-};
-
-const formatDate = (iso: string | undefined) => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-};
+const PAGE_SIZE = 500;
 
 export default function HandlerDashboardPage() {
   const router = useRouter();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [total, setTotal] = useState(0);
-  const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewAll, setViewAll] = useState(false);
+  const [usersMap, setUsersMap] = useState<Record<string, string>>({});
 
-  const fetchData = useCallback(async (currentOffset: number) => {
+  const fetchData = useCallback(async (all: boolean) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await getApiRequests({ limit: PAGE_SIZE, offset: currentOffset });
+      const res = await getApiRequests({ 
+        limit: PAGE_SIZE, 
+        scope: all ? 'all' : 'me' 
+      });
       setRequests(res.data.data || []);
       setTotal(res.data.total || 0);
     } catch (err: any) {
@@ -65,11 +36,42 @@ export default function HandlerDashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetchData(offset);
-  }, [offset, fetchData]);
+    fetchData(viewAll);
+  }, [viewAll, fetchData]);
 
-  const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  useEffect(() => {
+    async function fetchUsers() {
+      try {
+        const res = await listUsers({ role: 'handler' });
+        if (res.data) {
+          const map: Record<string, string> = {};
+          res.data.forEach((u: any) => {
+            if (u.id && u.name) {
+              map[u.id] = u.name;
+            }
+          });
+          setUsersMap(map);
+        }
+      } catch (err) {
+        console.error('Failed to load users for assignee mapping:', err);
+      }
+    }
+    fetchUsers();
+  }, []);
+
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    try {
+      // Optimistically update status locally
+      setRequests((prev) =>
+        prev.map((req) => (req.id === id ? { ...req, status: newStatus as any } : req))
+      );
+      await updateRequest(id, { status: newStatus as any });
+      fetchData(viewAll);
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message || 'Failed to update status');
+      fetchData(viewAll);
+    }
+  };
 
   return (
     <main style={styles.container}>
@@ -78,8 +80,15 @@ export default function HandlerDashboardPage() {
           <div>
             <h1 style={styles.title}>Handler Dashboard</h1>
             <p style={styles.subtitle}>
-              All service requests &mdash; {total} total
+              Service requests &mdash; {total} total
             </p>
+          </div>
+          <div>
+            <ToggleSwitch
+              checked={viewAll}
+              onChange={(val) => setViewAll(val)}
+              label="Show All Requests"
+            />
           </div>
         </div>
 
@@ -99,78 +108,12 @@ export default function HandlerDashboardPage() {
         )}
 
         {!loading && requests.length > 0 && (
-          <>
-            {/* Table */}
-            <div style={styles.tableWrapper}>
-              <table style={styles.table}>
-                <thead>
-                  <tr>
-                    <th style={styles.th}>Title</th>
-                    <th style={{ ...styles.th, textAlign: 'center' }}>Priority</th>
-                    <th style={{ ...styles.th, textAlign: 'center' }}>Status</th>
-                    <th style={styles.th}>Created</th>
-                    <th style={{ ...styles.th, textAlign: 'center' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {requests.map((req) => (
-                    <tr
-                      key={req.id}
-                      style={styles.tr}
-                      onClick={() => router.push(`/handler/requests/${req.id}`)}
-                    >
-                      <td style={styles.td}>
-                        <span style={styles.cellTitle}>{req.title}</span>
-                      </td>
-                      <td style={{ ...styles.td, textAlign: 'center' }}>
-                        <span style={priorityBadge(req.priority)}>{req.priority || 'low'}</span>
-                      </td>
-                      <td style={{ ...styles.td, textAlign: 'center' }}>
-                        <span style={statusBadge(req.status)}>{(req.status || 'open').replace('_', ' ')}</span>
-                      </td>
-                      <td style={styles.td}>
-                        <span style={styles.dateText}>{formatDate(req.created_at)}</span>
-                      </td>
-                      <td style={{ ...styles.td, textAlign: 'center' }}>
-                        <button
-                          style={styles.editButton}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/handler/requests/${req.id}/edit`);
-                          }}
-                        >
-                          Edit
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div style={styles.pagination}>
-                <button
-                  style={{ ...styles.pageButton, ...(offset === 0 ? styles.pageButtonDisabled : {}) }}
-                  disabled={offset === 0}
-                  onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
-                >
-                  ← Previous
-                </button>
-                <span style={styles.pageInfo}>
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button
-                  style={{ ...styles.pageButton, ...(offset + PAGE_SIZE >= total ? styles.pageButtonDisabled : {}) }}
-                  disabled={offset + PAGE_SIZE >= total}
-                  onClick={() => setOffset(offset + PAGE_SIZE)}
-                >
-                  Next →
-                </button>
-              </div>
-            )}
-          </>
+          <KanbanBoard
+            requests={requests}
+            onStatusChange={handleStatusChange}
+            onCardClick={(id) => router.push(`/handler/requests/${id}`)}
+            usersMap={usersMap}
+          />
         )}
       </div>
     </main>
@@ -200,7 +143,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
   },
   header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: '2rem',
+    flexWrap: 'wrap',
+    gap: '1rem',
   },
   title: {
     fontSize: '2rem',

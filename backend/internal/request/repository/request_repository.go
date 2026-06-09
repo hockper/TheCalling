@@ -91,6 +91,11 @@ func (r *PostgresRequestRepository) List(ctx context.Context, filter domain.List
 		args = append(args, *filter.CreatorID)
 		argIdx++
 	}
+	if filter.AssigneeID != nil {
+		conditions = append(conditions, fmt.Sprintf("assignee_id = $%d", argIdx))
+		args = append(args, *filter.AssigneeID)
+		argIdx++
+	}
 
 	whereClause := ""
 	if len(conditions) > 0 {
@@ -235,4 +240,23 @@ func (r *PostgresRequestRepository) Update(ctx context.Context, id string, input
 	req.Priority = domain.Priority(priority)
 	req.Status = domain.Status(status)
 	return &req, nil
+}
+
+// GetHandlerWithFewestRequests returns the ID of the active handler with the fewest open requests.
+func (r *PostgresRequestRepository) GetHandlerWithFewestRequests(ctx context.Context) (string, error) {
+	query := `
+		SELECT u.id
+		FROM users u
+		LEFT JOIN service_requests r ON u.id = r.assignee_id AND r.status NOT IN ('closed', 'resolved')
+		WHERE u.role = 'handler'
+		GROUP BY u.id
+		ORDER BY COUNT(r.id) ASC, u.id ASC
+		LIMIT 1
+	`
+	var userID string
+	err := r.db.QueryRowContext(ctx, query).Scan(&userID)
+	if err == sql.ErrNoRows {
+		return "", fmt.Errorf("no handlers available")
+	}
+	return userID, err
 }

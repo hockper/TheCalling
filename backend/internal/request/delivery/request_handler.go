@@ -98,6 +98,22 @@ func (h *RequestHandler) listRequests(w http.ResponseWriter, r *http.Request) {
 		filter.CreatorID = &userID
 	}
 
+	scope := r.URL.Query().Get("scope")
+	if scope == "" {
+		scope = "me"
+	}
+	filter.Scope = scope
+
+	// If handler and scope is "me", default filter.AssigneeID to the logged-in handler's ID
+	if userRole == string(domain.RoleHandler) && scope == "me" {
+		filter.AssigneeID = &userID
+	}
+
+	// If assignee_id query param is explicitly provided, override
+	if queryAssigneeID := r.URL.Query().Get("assignee_id"); queryAssigneeID != "" {
+		filter.AssigneeID = &queryAssigneeID
+	}
+
 	result, err := h.usecase.List(r.Context(), filter, userRole)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list requests"})
