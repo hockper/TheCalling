@@ -12,7 +12,7 @@ echo ""
 echo "----------------------------------------------------------"
 echo "1. Running Go Backend Unit & Integration Tests..."
 echo "----------------------------------------------------------"
-docker run --rm -v "$(pwd)/backend:/app" -v /var/run/docker.sock:/var/run/docker.sock -w /app golang:1.26-alpine go test -v -coverprofile=coverage.out -coverpkg=./internal/... ./internal/... ./tests/integration/...
+docker run --rm -v "$(pwd)/backend:/app" -v /var/run/docker.sock:/var/run/docker.sock -v go-build-cache:/root/.cache/go-build -v go-pkg-mod-cache:/go/pkg -w /app golang:1.26-alpine go test -v -coverprofile=coverage.out -coverpkg=./internal/... ./internal/... ./tests/integration/...
 
 echo ""
 echo "----------------------------------------------------------"
@@ -31,7 +31,15 @@ echo "----------------------------------------------------------"
 echo "4. Running Static Analysis & Container Scans..."
 echo "----------------------------------------------------------"
 # Run ESLint check
-docker run --rm -v "$(pwd)/frontend:/app" -w /app --user 1000:1000 node:20-alpine npm run lint || echo "ESLint linting completed."
+docker run --rm -v "$(pwd)/frontend:/app" -w /app --user 1000:1000 node:20-alpine npm run lint
+
+# Run Backend golangci-lint linter
+echo "Running Go Backend Linter (golangci-lint)..."
+docker run --rm -v "$(pwd)/backend:/app" -v golangci-lint-cache:/root/.cache -v go-pkg-mod-cache:/go/pkg -w /app golangci/golangci-lint:v1.64.8 golangci-lint run --timeout 10m
+
+# Run Go Security Scan (gosec)
+echo "Running Go Security Scan (gosec)..."
+docker run --rm -v "$(pwd)/backend:/app" -v gosec-cache:/root/.cache -v go-pkg-mod-cache:/go/pkg -w /app securego/gosec:latest ./...
 
 # Run Image scans
 ./scripts/scan-images.sh

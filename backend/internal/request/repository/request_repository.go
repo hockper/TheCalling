@@ -210,7 +210,7 @@ func (r *PostgresRequestRepository) Update(ctx context.Context, id string, input
 	// Add the ID as the last argument
 	args = append(args, id)
 
-	//nolint:gosec // query parts are safely constructed without user input
+	// #nosec G201
 	query := fmt.Sprintf(`
 		UPDATE service_requests
 		SET %s

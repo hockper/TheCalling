@@ -10,6 +10,7 @@ import (
 func LoadTestConfig() *Config {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
+		// #nosec G101
 		dbURL = "postgres://postgres:postgres@localhost:5432/thecalling_test?sslmode=disable"
 	}
 
