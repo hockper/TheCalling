@@ -10,7 +10,7 @@ if [ ! -f "$BACKEND_COVER_FILE" ]; then
   exit 1
 fi
 
-BACKEND_PCT=$(docker run --rm -v "$(pwd)/backend:/app" -w /app golang:1.21-alpine go tool cover -func=coverage.out | grep total | grep -oE '[0-9]+\.[0-9]+' | head -n 1)
+BACKEND_PCT=$(docker run --rm -v "$(pwd)/backend:/app" -w /app golang:1.26-alpine go tool cover -func=coverage.out | grep total | grep -oE '[0-9]+\.[0-9]+' | head -n 1)
 if [ -z "$BACKEND_PCT" ]; then
   echo "Error: Could not parse Go backend coverage percentage."
   exit 1

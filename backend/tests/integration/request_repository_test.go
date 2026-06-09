@@ -138,4 +138,61 @@ func TestPostgresRequestRepository_Integration(t *testing.T) {
 		assert.Equal(t, domain.PriorityHigh, updated.Priority)
 		assert.Equal(t, domain.StatusInProgress, updated.Status)
 	})
+
+	t.Run("should list requests with filtering and pagination", func(t *testing.T) {
+		// Clean before test
+		err := db.CleanDatabase(testDB.DB)
+		assert.NoError(t, err)
+
+		// Insert users
+		_, err = testDB.DB.Exec(`
+			INSERT INTO users (id, name, email, password_hash, role)
+			VALUES ('00000000-0000-0000-0000-000000000001', 'Handler One', 'h1@test.com', 'hash', 'handler'),
+			       ('00000000-0000-0000-0000-000000000002', 'Handler Two', 'h2@test.com', 'hash', 'handler'),
+			       ('00000000-0000-0000-0000-000000000003', 'Requester One', 'r1@test.com', 'hash', 'requester'),
+			       ('00000000-0000-0000-0000-000000000004', 'Requester Two', 'r2@test.com', 'hash', 'requester');
+		`)
+		assert.NoError(t, err)
+
+		h1 := "00000000-0000-0000-0000-000000000001"
+		h2 := "00000000-0000-0000-0000-000000000002"
+		r1 := "00000000-0000-0000-0000-000000000003"
+		r2 := "00000000-0000-0000-0000-000000000004"
+
+		// Create 3 requests
+		req1 := &domain.ServiceRequest{Title: "Req 1", CreatorID: r1, AssigneeID: &h1, Priority: domain.PriorityLow}
+		req2 := &domain.ServiceRequest{Title: "Req 2", CreatorID: r1, AssigneeID: &h2, Priority: domain.PriorityMedium}
+		req3 := &domain.ServiceRequest{Title: "Req 3", CreatorID: r2, AssigneeID: &h1, Priority: domain.PriorityHigh}
+
+		err = repo.Create(ctx, req1)
+		assert.NoError(t, err)
+		err = repo.Create(ctx, req2)
+		assert.NoError(t, err)
+		err = repo.Create(ctx, req3)
+		assert.NoError(t, err)
+
+		// 1. List all
+		list, err := repo.List(ctx, domain.ListRequestsFilter{Limit: 10, Offset: 0})
+		assert.NoError(t, err)
+		assert.Equal(t, 3, list.Total)
+		assert.Len(t, list.Data, 3)
+
+		// 2. Filter by creator
+		list, err = repo.List(ctx, domain.ListRequestsFilter{CreatorID: &r1, Limit: 10, Offset: 0})
+		assert.NoError(t, err)
+		assert.Equal(t, 2, list.Total)
+		assert.Len(t, list.Data, 2)
+
+		// 3. Filter by assignee
+		list, err = repo.List(ctx, domain.ListRequestsFilter{AssigneeID: &h1, Limit: 10, Offset: 0})
+		assert.NoError(t, err)
+		assert.Equal(t, 2, list.Total)
+		assert.Len(t, list.Data, 2)
+
+		// 4. Pagination
+		list, err = repo.List(ctx, domain.ListRequestsFilter{Limit: 1, Offset: 1})
+		assert.NoError(t, err)
+		assert.Equal(t, 3, list.Total)
+		assert.Len(t, list.Data, 1)
+	})
 }

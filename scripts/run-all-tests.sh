@@ -12,8 +12,7 @@ echo ""
 echo "----------------------------------------------------------"
 echo "1. Running Go Backend Unit & Integration Tests..."
 echo "----------------------------------------------------------"
-docker run --rm -v "$(pwd)/backend:/app" -w /app golang:1.21-alpine go test -v -coverprofile=coverage.out ./internal/...
-docker run --rm -v "$(pwd)/backend:/app" -v /var/run/docker.sock:/var/run/docker.sock -w /app golang:1.21-alpine go test -v ./tests/integration/...
+docker run --rm -v "$(pwd)/backend:/app" -v /var/run/docker.sock:/var/run/docker.sock -w /app golang:1.26-alpine go test -v -coverprofile=coverage.out -coverpkg=./internal/... ./internal/... ./tests/integration/...
 
 echo ""
 echo "----------------------------------------------------------"

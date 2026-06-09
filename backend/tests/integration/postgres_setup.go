@@ -58,32 +58,11 @@ func SetupTestDatabase(ctx context.Context) (*TestDBContext, error) {
 
 	connStr := fmt.Sprintf("postgres://postgres:password@%s:%s/thecalling_test?sslmode=disable", host, port.Port())
 	
-	// Establish connection
-	sqlDB, err := sql.Open("postgres", connStr)
+	// Establish connection and run migrations/seeds using InitDB
+	sqlDB, err := db.InitDB(connStr)
 	if err != nil {
 		_ = container.Terminate(ctx)
-		return nil, fmt.Errorf("failed to open sql connection: %w", err)
-	}
-
-	// Wait for ping
-	var pingErr error
-	for i := 0; i < 10; i++ {
-		if pingErr = sqlDB.Ping(); pingErr == nil {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-	if pingErr != nil {
-		_ = sqlDB.Close()
-		_ = container.Terminate(ctx)
-		return nil, fmt.Errorf("failed to ping database: %w", pingErr)
-	}
-
-	// Run migrations and seeds
-	if err := db.MigrateAndSeed(sqlDB); err != nil {
-		_ = sqlDB.Close()
-		_ = container.Terminate(ctx)
-		return nil, fmt.Errorf("failed to migrate and seed: %w", err)
+		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
 	return &TestDBContext{

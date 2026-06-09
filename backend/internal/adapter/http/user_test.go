@@ -12,6 +12,7 @@ import (
 	"backend/internal/domain"
 	"backend/internal/request/repository"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -123,4 +124,14 @@ func TestUserHandler_ListUsers(t *testing.T) {
 		handler.ListUsers(rec, req)
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	})
+}
+
+func TestNewUserHandler(t *testing.T) {
+	db, _, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	handler := NewUserHandler("secret", db)
+	assert.NotNil(t, handler)
+	assert.Equal(t, []byte("secret"), handler.jwtSecret)
 }
