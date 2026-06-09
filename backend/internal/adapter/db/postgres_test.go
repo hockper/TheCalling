@@ -11,7 +11,7 @@ import (
 func TestMigrateAndSeed_Error(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Mock failure on the first migration query
 	mock.ExpectExec("CREATE TABLE").WillReturnError(assert.AnError)
@@ -23,7 +23,7 @@ func TestMigrateAndSeed_Error(t *testing.T) {
 func TestCleanDatabase_Error(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectExec("TRUNCATE TABLE").WillReturnError(assert.AnError)
 
