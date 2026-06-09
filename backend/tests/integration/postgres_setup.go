@@ -1,3 +1,4 @@
+// Package integration holds integration tests and setup code.
 package integration
 
 import (
@@ -9,7 +10,7 @@ import (
 
 	"backend/internal/adapter/db"
 
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // PostgreSQL driver
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -45,13 +46,13 @@ func SetupTestDatabase(ctx context.Context) (*TestDBContext, error) {
 
 	host, err := container.Host(ctx)
 	if err != nil {
-		container.Terminate(ctx)
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("failed to get container host: %w", err)
 	}
 
 	port, err := container.MappedPort(ctx, "5432")
 	if err != nil {
-		container.Terminate(ctx)
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("failed to get mapped port: %w", err)
 	}
 
@@ -60,7 +61,7 @@ func SetupTestDatabase(ctx context.Context) (*TestDBContext, error) {
 	// Establish connection
 	sqlDB, err := sql.Open("postgres", connStr)
 	if err != nil {
-		container.Terminate(ctx)
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("failed to open sql connection: %w", err)
 	}
 
@@ -73,15 +74,15 @@ func SetupTestDatabase(ctx context.Context) (*TestDBContext, error) {
 		time.Sleep(1 * time.Second)
 	}
 	if pingErr != nil {
-		sqlDB.Close()
-		container.Terminate(ctx)
+		_ = sqlDB.Close()
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("failed to ping database: %w", pingErr)
 	}
 
 	// Run migrations and seeds
 	if err := db.MigrateAndSeed(sqlDB); err != nil {
-		sqlDB.Close()
-		container.Terminate(ctx)
+		_ = sqlDB.Close()
+		_ = container.Terminate(ctx)
 		return nil, fmt.Errorf("failed to migrate and seed: %w", err)
 	}
 
@@ -94,7 +95,7 @@ func SetupTestDatabase(ctx context.Context) (*TestDBContext, error) {
 // Teardown closes the database connection and terminates the container.
 func (c *TestDBContext) Teardown(ctx context.Context) {
 	if c.DB != nil {
-		c.DB.Close()
+		_ = c.DB.Close()
 	}
 	if c.Container != nil {
 		if err := c.Container.Terminate(ctx); err != nil {

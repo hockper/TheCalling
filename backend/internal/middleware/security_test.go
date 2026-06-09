@@ -14,7 +14,7 @@ func TestJWTSecurity(t *testing.T) {
 	secretKey := []byte("original-super-secret-key-for-jwt-32-bytes")
 	forgedKey := []byte("forged-key-forged-key-forged-key-32-bytes")
 
-	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 

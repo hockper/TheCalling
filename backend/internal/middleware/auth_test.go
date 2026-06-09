@@ -103,7 +103,7 @@ func TestAuthMiddleware(t *testing.T) {
 }
 
 func TestRequireRole(t *testing.T) {
-	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 

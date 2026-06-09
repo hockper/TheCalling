@@ -17,7 +17,7 @@ func TestHealthHandler_AllScenarios(t *testing.T) {
 		// Arrange: mock SQL DB
 		db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
 		assert.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 		mock.ExpectPing()
 
 		// Arrange: mock Redis
@@ -25,7 +25,7 @@ func TestHealthHandler_AllScenarios(t *testing.T) {
 		assert.NoError(t, err)
 		defer mr.Close()
 		rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-		defer rdb.Close()
+		defer func() { _ = rdb.Close() }()
 
 		handler := NewHealthHandler(db, rdb)
 		req := httptest.NewRequest(http.MethodGet, "/health", nil)
@@ -49,14 +49,14 @@ func TestHealthHandler_AllScenarios(t *testing.T) {
 		// Arrange: closed/nil SQL DB
 		db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
 		assert.NoError(t, err)
-		db.Close() // close it immediately to cause ping failure
+		_ = db.Close() // close it immediately to cause ping failure
 
 		// Arrange: mock Redis
 		mr, err := miniredis.Run()
 		assert.NoError(t, err)
 		defer mr.Close()
 		rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-		defer rdb.Close()
+		defer func() { _ = rdb.Close() }()
 
 		handler := NewHealthHandler(db, rdb)
 		req := httptest.NewRequest(http.MethodGet, "/health", nil)
@@ -80,12 +80,12 @@ func TestHealthHandler_AllScenarios(t *testing.T) {
 		// Arrange: mock SQL DB
 		db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
 		assert.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 		mock.ExpectPing()
 
 		// Arrange: disconnected Redis client
 		rdb := redis.NewClient(&redis.Options{Addr: "localhost:63799"}) // bad address
-		defer rdb.Close()
+		defer func() { _ = rdb.Close() }()
 
 		handler := NewHealthHandler(db, rdb)
 		req := httptest.NewRequest(http.MethodGet, "/health", nil)

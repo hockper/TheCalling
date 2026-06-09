@@ -14,11 +14,13 @@ type MockRequestRepository struct {
 	mock.Mock
 }
 
+// Create mocks the Create method on RequestRepository.
 func (m *MockRequestRepository) Create(ctx context.Context, req *domain.ServiceRequest) error {
 	args := m.Called(ctx, req)
 	return args.Error(0)
 }
 
+// GetByID mocks the GetByID method on RequestRepository.
 func (m *MockRequestRepository) GetByID(ctx context.Context, id string) (*domain.ServiceRequest, error) {
 	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
@@ -27,6 +29,7 @@ func (m *MockRequestRepository) GetByID(ctx context.Context, id string) (*domain
 	return args.Get(0).(*domain.ServiceRequest), args.Error(1)
 }
 
+// List mocks the List method on RequestRepository.
 func (m *MockRequestRepository) List(ctx context.Context, filter domain.ListRequestsFilter) (*domain.RequestListResult, error) {
 	args := m.Called(ctx, filter)
 	if args.Get(0) == nil {
@@ -35,6 +38,7 @@ func (m *MockRequestRepository) List(ctx context.Context, filter domain.ListRequ
 	return args.Get(0).(*domain.RequestListResult), args.Error(1)
 }
 
+// Update mocks the Update method on RequestRepository.
 func (m *MockRequestRepository) Update(ctx context.Context, id string, input domain.UpdateRequestInput) (*domain.ServiceRequest, error) {
 	args := m.Called(ctx, id, input)
 	if args.Get(0) == nil {
@@ -43,6 +47,7 @@ func (m *MockRequestRepository) Update(ctx context.Context, id string, input dom
 	return args.Get(0).(*domain.ServiceRequest), args.Error(1)
 }
 
+// GetHandlerWithFewestRequests mocks the GetHandlerWithFewestRequests method on RequestRepository.
 func (m *MockRequestRepository) GetHandlerWithFewestRequests(ctx context.Context) (string, error) {
 	args := m.Called(ctx)
 	return args.String(0), args.Error(1)
@@ -53,6 +58,7 @@ type MockUserRepository struct {
 	mock.Mock
 }
 
+// GetByID mocks the GetByID method on UserRepository.
 func (m *MockUserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
 	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
@@ -61,6 +67,7 @@ func (m *MockUserRepository) GetByID(ctx context.Context, id string) (*domain.Us
 	return args.Get(0).(*domain.User), args.Error(1)
 }
 
+// GetByEmail mocks the GetByEmail method on UserRepository.
 func (m *MockUserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	args := m.Called(ctx, email)
 	if args.Get(0) == nil {
@@ -69,6 +76,7 @@ func (m *MockUserRepository) GetByEmail(ctx context.Context, email string) (*dom
 	return args.Get(0).(*domain.User), args.Error(1)
 }
 
+// List mocks the List method on UserRepository.
 func (m *MockUserRepository) List(ctx context.Context, role string) ([]*domain.User, error) {
 	args := m.Called(ctx, role)
 	if args.Get(0) == nil {

@@ -135,7 +135,7 @@ func TestGetEnv_ReturnsSetValue(t *testing.T) {
 
 func TestGetEnv_ReturnsDefaultWhenUnset(t *testing.T) {
 	// Arrange - ensure key is not set
-	os.Unsetenv("TEST_GETENV_UNSET_KEY_XYZ")
+	_ = os.Unsetenv("TEST_GETENV_UNSET_KEY_XYZ")
 
 	// Act
 	result := getEnv("TEST_GETENV_UNSET_KEY_XYZ", "my-fallback")
