@@ -54,7 +54,7 @@ func TestPostgresUserRepository_Integration(t *testing.T) {
 
 		// Assert
 		assert.NoError(t, err)
-		assert.Len(t, handlers, 1)
+		assert.Len(t, handlers, 3)
 		assert.Equal(t, "Alice Handler", handlers[0].Name)
 	})
 

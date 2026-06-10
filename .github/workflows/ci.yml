@@ -65,6 +65,11 @@ jobs:
           cd frontend
           npm run lint
 
+      - name: Run Frontend Unit Tests
+        run: |
+          cd frontend
+          npm run test:coverage
+
   security-scan:
     name: DevSecOps Vulnerability Scan (Trivy)
     runs-on: ubuntu-latest

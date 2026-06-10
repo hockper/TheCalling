@@ -69,3 +69,61 @@ On every push and pull request, the GitHub Actions CI pipeline enforces the foll
 - **Backend Quality**: Runs `golangci-lint` (formatting/linting), `gosec` (SAST analysis), and standard Go tests.
 - **Frontend Quality**: Runs Next.js `npm run lint`.
 - **Security Gates**: Builds the container images and executes **Trivy** scanning to detect critical or high vulnerability package dependencies.
+
+---
+
+## 6. Automated Testing (Local & CI)
+
+The project includes a comprehensive automated testing suite. All tests run inside Docker containers, meaning **no local runtimes or test tools are required on your host machine**.
+
+### Running All Tests Locally
+To execute the entire test suite exactly as it runs in the GitHub Actions CI pipeline:
+
+```bash
+./scripts/run-all-tests.sh
+```
+
+This script orchestrates and verifies the following stages sequentially:
+1. **Go Backend Tests**: Runs unit and Testcontainers-based Postgres database integration tests.
+2. **Next.js Frontend Tests**: Runs unit and component tests using **Vitest** with coverage collection.
+3. **Playwright E2E Tests**: Executes browser automation user journeys inside a Playwright container.
+4. **Static Analysis & Security Scans**:
+   - Runs `eslint` on the frontend codebase.
+   - Runs `golangci-lint` on the backend codebase.
+   - Runs `gosec` security scanner on Go sources.
+5. **Container Scans**: Builds backend and frontend Docker images and runs **Trivy** scanning to check for vulnerabilities.
+6. **Coverage Gate**: Validates that both Go backend and Vitest frontend code coverage meet the minimum **80% threshold**.
+
+### Docker Multi-Stage Testing Targets
+
+To ensure the final production container images remain lightweight and secure, all testing libraries and `devDependencies` are stripped from the default container builds.
+
+However, if you want to explicitly run the test suites directly inside the Docker build process, you can build the optional `tester` targets. This builds a specialized stage containing all development dependencies and executes the tests.
+
+**Frontend Tester Target:**
+```bash
+docker build -t thecalling-frontend:test --target tester ./frontend
+```
+
+**Backend Tester Target:**
+```bash
+docker build -t thecalling-backend:test --target tester ./backend
+```
+
+### End-to-End (E2E) Testing
+
+While the `tester` targets isolate and run Unit/Component tests during image builds, **End-to-End (E2E) testing** (via Playwright) requires both the Frontend and Backend to actively communicate over a shared network. 
+
+To execute E2E testing against your actual production-ready Docker images simultaneously:
+
+1. **Spin up the full environment:** Start the entire monorepo stack so that the frontend, backend, and databases are running on the local network.
+   ```bash
+   docker compose up -d --build
+   ```
+
+2. **Execute E2E tests against the live stack:** Direct Playwright to target your local instance using the `mcr.microsoft.com/playwright` image.
+   ```bash
+   docker run --rm --network host -e PLAYWRIGHT_TEST_BASE_URL=http://localhost -v "$(pwd)/frontend:/app" -w /app mcr.microsoft.com/playwright:v1.60.0-jammy npx playwright test
+   ```
+
+*Note: The linter, security, and test runs mount local Docker caching volumes (`go-build-cache`, `go-pkg-mod-cache`, etc.) to optimize and speed up execution after the first run.*
