@@ -94,4 +94,20 @@ This script orchestrates and verifies the following stages sequentially:
 5. **Container Scans**: Builds backend and frontend Docker images and runs **Trivy** scanning to check for vulnerabilities.
 6. **Coverage Gate**: Validates that both Go backend and Vitest frontend code coverage meet the minimum **80% threshold**.
 
+### Docker Multi-Stage Testing Targets
+
+To ensure the final production container images remain lightweight and secure, all testing libraries and `devDependencies` are stripped from the default container builds.
+
+However, if you want to explicitly run the test suites directly inside the Docker build process, you can build the optional `tester` targets. This builds a specialized stage containing all development dependencies and executes the tests.
+
+**Frontend Tester Target:**
+```bash
+docker build -t thecalling-frontend:test --target tester ./frontend
+```
+
+**Backend Tester Target:**
+```bash
+docker build -t thecalling-backend:test --target tester ./backend
+```
+
 *Note: The linter, security, and test runs mount local Docker caching volumes (`go-build-cache`, `go-pkg-mod-cache`, etc.) to optimize and speed up execution after the first run.*
