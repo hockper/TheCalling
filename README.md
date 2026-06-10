@@ -69,3 +69,29 @@ On every push and pull request, the GitHub Actions CI pipeline enforces the foll
 - **Backend Quality**: Runs `golangci-lint` (formatting/linting), `gosec` (SAST analysis), and standard Go tests.
 - **Frontend Quality**: Runs Next.js `npm run lint`.
 - **Security Gates**: Builds the container images and executes **Trivy** scanning to detect critical or high vulnerability package dependencies.
+
+---
+
+## 6. Automated Testing (Local & CI)
+
+The project includes a comprehensive automated testing suite. All tests run inside Docker containers, meaning **no local runtimes or test tools are required on your host machine**.
+
+### Running All Tests Locally
+To execute the entire test suite exactly as it runs in the GitHub Actions CI pipeline:
+
+```bash
+./scripts/run-all-tests.sh
+```
+
+This script orchestrates and verifies the following stages sequentially:
+1. **Go Backend Tests**: Runs unit and Testcontainers-based Postgres database integration tests.
+2. **Next.js Frontend Tests**: Runs unit and component tests using **Vitest** with coverage collection.
+3. **Playwright E2E Tests**: Executes browser automation user journeys inside a Playwright container.
+4. **Static Analysis & Security Scans**:
+   - Runs `eslint` on the frontend codebase.
+   - Runs `golangci-lint` on the backend codebase.
+   - Runs `gosec` security scanner on Go sources.
+5. **Container Scans**: Builds backend and frontend Docker images and runs **Trivy** scanning to check for vulnerabilities.
+6. **Coverage Gate**: Validates that both Go backend and Vitest frontend code coverage meet the minimum **80% threshold**.
+
+*Note: The linter, security, and test runs mount local Docker caching volumes (`go-build-cache`, `go-pkg-mod-cache`, etc.) to optimize and speed up execution after the first run.*
