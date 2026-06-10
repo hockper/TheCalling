@@ -1,0 +1,5 @@
+
+# Testing reports
+/coverage
+/playwright-report
+/test-results
