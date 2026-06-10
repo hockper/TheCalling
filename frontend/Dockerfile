@@ -13,5 +13,7 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+# Remove global npm and npx to eliminate container vulnerabilities in the base image's global npm dependencies
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["node_modules/.bin/next", "start"]
