@@ -110,4 +110,20 @@ docker build -t thecalling-frontend:test --target tester ./frontend
 docker build -t thecalling-backend:test --target tester ./backend
 ```
 
+### End-to-End (E2E) Testing
+
+While the `tester` targets isolate and run Unit/Component tests during image builds, **End-to-End (E2E) testing** (via Playwright) requires both the Frontend and Backend to actively communicate over a shared network. 
+
+To execute E2E testing against your actual production-ready Docker images simultaneously:
+
+1. **Spin up the full environment:** Start the entire monorepo stack so that the frontend, backend, and databases are running on the local network.
+   ```bash
+   docker compose up -d --build
+   ```
+
+2. **Execute E2E tests against the live stack:** Direct Playwright to target your local instance using the `mcr.microsoft.com/playwright` image.
+   ```bash
+   docker run --rm --network host -e PLAYWRIGHT_TEST_BASE_URL=http://localhost -v "$(pwd)/frontend:/app" -w /app mcr.microsoft.com/playwright:v1.60.0-jammy npx playwright test
+   ```
+
 *Note: The linter, security, and test runs mount local Docker caching volumes (`go-build-cache`, `go-pkg-mod-cache`, etc.) to optimize and speed up execution after the first run.*
