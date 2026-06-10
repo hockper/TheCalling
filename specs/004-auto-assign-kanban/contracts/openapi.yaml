@@ -1,0 +1,93 @@
+openapi: 3.0.0
+info:
+  title: Kanban and Auto-Assign API Additions
+  version: 1.0.0
+paths:
+  /api/requests:
+    get:
+      summary: Get requests for the Kanban board
+      parameters:
+        - name: scope
+          in: query
+          description: Scope of the requests (e.g., 'me', 'all')
+          required: false
+          schema:
+            type: string
+            enum: [me, all]
+            default: me
+      responses:
+        '200':
+          description: A list of requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Request'
+    post:
+      summary: Create a new request (auto-assigned)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Request created and auto-assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+  /api/requests/{id}/status:
+    patch:
+      summary: Update the status of a request (Drag and Drop in Kanban)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+      responses:
+        '200':
+          description: Status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+
+components:
+  schemas:
+    Request:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        assignee_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time

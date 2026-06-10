@@ -1,0 +1,154 @@
+openapi: 3.0.3
+info:
+  title: Request Registration API
+  version: 1.0.0
+paths:
+  /requests:
+    post:
+      summary: Create a new service request
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewRequest'
+      responses:
+        '201':
+          description: Request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+    get:
+      summary: List service requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: A list of requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestList'
+  /requests/{id}:
+    get:
+      summary: Get a specific request
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Request details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+    patch:
+      summary: Edit a request
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRequest'
+      responses:
+        '200':
+          description: Request updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+components:
+  schemas:
+    NewRequest:
+      type: object
+      required:
+        - title
+        - description
+        - priority
+        - assignee_id
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high]
+        assignee_id:
+          type: string
+          format: uuid
+    UpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high]
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+        assignee_id:
+          type: string
+          format: uuid
+    Request:
+      allOf:
+        - $ref: '#/components/schemas/NewRequest'
+        - type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [open, in_progress, resolved, closed]
+            creator_id:
+              type: string
+              format: uuid
+            created_at:
+              type: string
+              format: date-time
+    RequestList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Request'
+        total:
+          type: integer
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer

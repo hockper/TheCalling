@@ -1,0 +1,102 @@
+name: Continuous Integration & DevSecOps
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-quality:
+    name: Backend Quality (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: backend/go.sum
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          go mod tidy
+
+      - name: Run Backend Linter
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          working-directory: backend
+
+      - name: Run Go Security Scan (SAST)
+        uses: securego/gosec@master
+        with:
+          args: ./backend/...
+
+      - name: Run Backend Unit Tests
+        run: |
+          cd backend
+          go test -v -race -coverprofile=coverage.out ./...
+
+  frontend-quality:
+    name: Frontend Quality (Next.js)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+      - name: Run Frontend Lint
+        run: |
+          cd frontend
+          npm run lint
+
+  security-scan:
+    name: DevSecOps Vulnerability Scan (Trivy)
+    runs-on: ubuntu-latest
+    needs: [backend-quality, frontend-quality]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Backend Image
+        run: |
+          docker build -t thecalling-backend:latest ./backend
+
+      - name: Build Frontend Image
+        run: |
+          docker build -t thecalling-frontend:latest ./frontend
+
+      - name: Scan Backend Container (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'thecalling-backend:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Scan Frontend Container (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'thecalling-frontend:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'

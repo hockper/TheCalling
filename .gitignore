@@ -1,3 +1,30 @@
+# Spec Kit files
 .agents
 .specify
 AGENTS.md
+
+# Go
+*.exe
+*.test
+vendor/
+*.out
+
+# Node.js / React / Next.js
+node_modules/
+dist/
+build/
+*.log
+.env*
+.next/
+out/
+.vercel
+.expo/
+.npm
+
+# Universal
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/

@@ -1,0 +1,393 @@
+openapi: 3.0.3
+info:
+  title: The Calling API
+  description: Central API contract for The Calling backend and frontend service integration.
+  version: 1.1.0
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns the status of the backend API, PostgreSQL database, and Redis cache.
+      responses:
+        '200':
+          description: All services are healthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  database:
+                    type: string
+                    example: connected
+                  redis:
+                    type: string
+                    example: connected
+        '503':
+          description: One or more services are unhealthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  error:
+                    type: string
+                    example: database connection lost
+
+  /api/auth/login:
+    post:
+      summary: Authenticate user
+      description: Validates user credentials and sets a secure HttpOnly JWT cookie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: supersecretpassword
+      responses:
+        '200':
+          description: Successfully authenticated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid email or password.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: unauthorized
+
+  /api/auth/logout:
+    post:
+      summary: Clear user session
+      description: Clears the secure HttpOnly JWT cookie by setting it with an expired state.
+      responses:
+        '200':
+          description: Successfully logged out.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /api/users/me:
+    get:
+      summary: Get current authenticated user
+      description: Returns the profile details of the currently logged-in user via JWT session authentication.
+      security:
+        - CookieAuth: []
+      responses:
+        '200':
+          description: Successful profile retrieval.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Missing or expired authentication token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: unauthorized
+  /api/users:
+    get:
+      summary: List users
+      description: Returns a list of users, primarily used to populate assignee dropdowns.
+      operationId: listUsers
+      security:
+        - CookieAuth: []
+      parameters:
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [requester, handler]
+          description: Optional filter by user role.
+      responses:
+        '200':
+          description: A list of users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Not authenticated.
+
+  /api/requests:
+    post:
+      summary: Create a new service request
+      description: Creates a new service request. Only Requester role users can create requests.
+      operationId: createRequest
+      security:
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewRequest'
+      responses:
+        '201':
+          description: Request created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequest'
+        '400':
+          description: Invalid request body.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '401':
+          description: Not authenticated.
+        '403':
+          description: Not authorized (wrong role).
+    get:
+      summary: List service requests
+      description: Returns a paginated list of service requests. Handlers see all requests, Requesters see only their own.
+      operationId: listRequests
+      security:
+        - CookieAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+          description: Number of requests per page.
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+          description: Number of requests to skip.
+        - in: query
+          name: scope
+          schema:
+            type: string
+            enum: [me, all]
+            default: me
+          description: Scope of requests to retrieve. Handlers only.
+        - in: query
+          name: assignee_id
+          schema:
+            type: string
+            format: uuid
+          description: Filter requests by assignee ID. Handlers only.
+      responses:
+        '200':
+          description: A paginated list of requests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestList'
+        '401':
+          description: Not authenticated.
+
+  /api/requests/{id}:
+    get:
+      summary: Get a specific service request
+      description: Returns full details of a single service request by ID.
+      operationId: getRequest
+      security:
+        - CookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Request details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequest'
+        '401':
+          description: Not authenticated.
+        '403':
+          description: Not authorized to view this request.
+        '404':
+          description: Request not found.
+    patch:
+      summary: Edit a service request
+      description: Updates fields of an existing service request. Only Handler role users can edit.
+      operationId: updateRequest
+      security:
+        - CookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRequest'
+      responses:
+        '200':
+          description: Request updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequest'
+        '400':
+          description: Invalid request body.
+        '401':
+          description: Not authenticated.
+        '403':
+          description: Not authorized to edit requests.
+        '404':
+          description: Request not found.
+
+components:
+  securitySchemes:
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: d3b07384-d113-495b-a5c2-369fca0cac8f
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        name:
+          type: string
+          example: John Doe
+        role:
+          type: string
+          enum: [requester, handler]
+          example: handler
+        created_at:
+          type: string
+          format: date-time
+          example: 2026-06-06T12:00:00Z
+    NewRequest:
+      type: object
+      required:
+        - title
+        - description
+        - priority
+      properties:
+        title:
+          type: string
+          example: Fix login bug
+        description:
+          type: string
+          example: Users cannot log in with special characters in password.
+        priority:
+          type: string
+          enum: [low, medium, high]
+          example: high
+        assignee_id:
+          type: string
+          format: uuid
+          example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+    UpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high]
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+        assignee_id:
+          type: string
+          format: uuid
+    ServiceRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high]
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+        creator_id:
+          type: string
+          format: uuid
+        assignee_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    RequestList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceRequest'
+        total:
+          type: integer
+          example: 42
