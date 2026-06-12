@@ -86,15 +86,35 @@ func (r *PostgresRequestRepository) List(ctx context.Context, filter domain.List
 	var args []interface{}
 	argIdx := 1
 
-	if filter.CreatorID != nil {
-		conditions = append(conditions, fmt.Sprintf("creator_id = $%d", argIdx))
-		args = append(args, *filter.CreatorID)
-		argIdx++
+	if len(filter.CreatorIDs) > 0 {
+		placeholders := make([]string, len(filter.CreatorIDs))
+		for i := range filter.CreatorIDs {
+			placeholders[i] = fmt.Sprintf("$%d", argIdx)
+			args = append(args, filter.CreatorIDs[i])
+			argIdx++
+		}
+		conditions = append(conditions, fmt.Sprintf("creator_id IN (%s)", strings.Join(placeholders, ", ")))
 	}
 	if filter.AssigneeID != nil {
 		conditions = append(conditions, fmt.Sprintf("assignee_id = $%d", argIdx))
 		args = append(args, *filter.AssigneeID)
 		argIdx++
+	}
+
+	if filter.Search != "" {
+		conditions = append(conditions, fmt.Sprintf("(title ILIKE $%d OR description ILIKE $%d)", argIdx, argIdx+1))
+		args = append(args, "%"+filter.Search+"%", "%"+filter.Search+"%")
+		argIdx += 2
+	}
+
+	if len(filter.Priorities) > 0 {
+		placeholders := make([]string, len(filter.Priorities))
+		for i := range filter.Priorities {
+			placeholders[i] = fmt.Sprintf("$%d", argIdx)
+			args = append(args, filter.Priorities[i])
+			argIdx++
+		}
+		conditions = append(conditions, fmt.Sprintf("priority IN (%s)", strings.Join(placeholders, ", ")))
 	}
 
 	whereClause := ""

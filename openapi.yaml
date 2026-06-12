@@ -215,6 +215,30 @@ paths:
             type: string
             format: uuid
           description: Filter requests by assignee ID. Handlers only.
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Keyword to search in title and description.
+        - in: query
+          name: creator_id
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+          description: Filter requests by creator IDs. Handlers only.
+        - in: query
+          name: priority
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter requests by multiple priorities.
       responses:
         '200':
           description: A paginated list of requests.

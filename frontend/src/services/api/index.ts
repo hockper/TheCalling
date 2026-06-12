@@ -4,6 +4,25 @@ import axios from 'axios';
 // Ensure JWT cookies are always sent with requests
 axios.defaults.withCredentials = true;
 
+// Configure query parameter array serialization to standard format (without brackets)
+axios.defaults.paramsSerializer = {
+  serialize: (params) => {
+    if (!params) return '';
+    const searchParams = new URLSearchParams();
+    for (const key in params) {
+      const val = params[key];
+      if (val !== undefined && val !== null) {
+        if (Array.isArray(val)) {
+          val.forEach((v) => searchParams.append(key, v));
+        } else {
+          searchParams.append(key, val.toString());
+        }
+      }
+    }
+    return searchParams.toString();
+  }
+};
+
 // Global interceptor to handle session expiry (401 Unauthorized)
 axios.interceptors.response.use(
   (response) => response,

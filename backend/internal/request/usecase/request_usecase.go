@@ -122,7 +122,7 @@ func (u *RequestUsecaseImpl) List(ctx context.Context, filter domain.ListRequest
 }
 
 // Update validates input and updates an existing service request.
-func (u *RequestUsecaseImpl) Update(ctx context.Context, id string, input domain.UpdateRequestInput) (*domain.ServiceRequest, error) {
+func (u *RequestUsecaseImpl) Update(ctx context.Context, id string, input domain.UpdateRequestInput, userID string, userRole string) (*domain.ServiceRequest, error) {
 	// Check that the request exists
 	existing, err := u.requestRepo.GetByID(ctx, id)
 	if err != nil {
@@ -130,6 +130,21 @@ func (u *RequestUsecaseImpl) Update(ctx context.Context, id string, input domain
 	}
 	if existing == nil {
 		return nil, ErrRequestNotFound
+	}
+
+	if userRole == string(domain.RoleRequester) {
+		if existing.CreatorID != userID {
+			return nil, ErrForbidden
+		}
+		// Requesters can only close requests
+		if input.Title != nil || input.Description != nil || input.Priority != nil || input.AssigneeID != nil {
+			return nil, errors.New("requesters can only close their requests")
+		}
+		if input.Status != nil && *input.Status != domain.StatusClosed {
+			return nil, errors.New("requesters can only change status to closed")
+		}
+	} else if userRole != string(domain.RoleHandler) {
+		return nil, ErrForbidden
 	}
 
 	// Validate optional fields if provided

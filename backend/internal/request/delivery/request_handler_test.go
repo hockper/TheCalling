@@ -44,8 +44,8 @@ func (m *mockRequestUsecase) List(ctx context.Context, filter domain.ListRequest
 	return args.Get(0).(*domain.RequestListResult), args.Error(1)
 }
 
-func (m *mockRequestUsecase) Update(ctx context.Context, id string, input domain.UpdateRequestInput) (*domain.ServiceRequest, error) {
-	args := m.Called(ctx, id, input)
+func (m *mockRequestUsecase) Update(ctx context.Context, id string, input domain.UpdateRequestInput, userID string, userRole string) (*domain.ServiceRequest, error) {
+	args := m.Called(ctx, id, input, userID, userRole)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -277,13 +277,14 @@ func TestRequestHandler_UpdateRequest(t *testing.T) {
 		body, _ := json.Marshal(input)
 
 		req := httptest.NewRequest(http.MethodPatch, "/api/requests/123", bytes.NewBuffer(body))
-		ctx := context.WithValue(req.Context(), middleware.UserRoleKey, string(domain.RoleHandler))
+		ctx := context.WithValue(req.Context(), middleware.UserIDKey, "user-123")
+		ctx = context.WithValue(ctx, middleware.UserRoleKey, string(domain.RoleHandler))
 		req = req.WithContext(ctx)
 
 		rec := httptest.NewRecorder()
 
 		updated := &domain.ServiceRequest{ID: "123", Priority: domain.PriorityHigh}
-		mockUC.On("Update", mock.Anything, "123", input).Return(updated, nil)
+		mockUC.On("Update", mock.Anything, "123", input, "user-123", string(domain.RoleHandler)).Return(updated, nil)
 
 		// Act
 		handler.HandleRequestByID(rec, req)
@@ -293,15 +294,46 @@ func TestRequestHandler_UpdateRequest(t *testing.T) {
 		mockUC.AssertExpectations(t)
 	})
 
-	t.Run("should fail when user is not handler", func(t *testing.T) {
+	t.Run("should succeed when user is requester closing their own request", func(t *testing.T) {
 		// Arrange
-		handler := NewRequestHandler(nil)
+		mockUC := new(mockRequestUsecase)
+		handler := NewRequestHandler(mockUC)
 
-		req := httptest.NewRequest(http.MethodPatch, "/api/requests/123", nil)
-		ctx := context.WithValue(req.Context(), middleware.UserRoleKey, string(domain.RoleRequester))
+		newStatus := domain.StatusClosed
+		input := domain.UpdateRequestInput{Status: &newStatus}
+		body, _ := json.Marshal(input)
+
+		req := httptest.NewRequest(http.MethodPatch, "/api/requests/123", bytes.NewBuffer(body))
+		ctx := context.WithValue(req.Context(), middleware.UserIDKey, "req-123")
+		ctx = context.WithValue(ctx, middleware.UserRoleKey, string(domain.RoleRequester))
 		req = req.WithContext(ctx)
 
 		rec := httptest.NewRecorder()
+
+		updated := &domain.ServiceRequest{ID: "123", Status: domain.StatusClosed}
+		mockUC.On("Update", mock.Anything, "123", input, "req-123", string(domain.RoleRequester)).Return(updated, nil)
+
+		// Act
+		handler.HandleRequestByID(rec, req)
+
+		// Assert
+		assert.Equal(t, http.StatusOK, rec.Code)
+		mockUC.AssertExpectations(t)
+	})
+
+	t.Run("should fail when usecase returns forbidden", func(t *testing.T) {
+		// Arrange
+		mockUC := new(mockRequestUsecase)
+		handler := NewRequestHandler(mockUC)
+
+		req := httptest.NewRequest(http.MethodPatch, "/api/requests/123", bytes.NewBufferString(`{}`))
+		ctx := context.WithValue(req.Context(), middleware.UserIDKey, "req-123")
+		ctx = context.WithValue(ctx, middleware.UserRoleKey, string(domain.RoleRequester))
+		req = req.WithContext(ctx)
+
+		rec := httptest.NewRecorder()
+
+		mockUC.On("Update", mock.Anything, "123", mock.Anything, "req-123", string(domain.RoleRequester)).Return(nil, usecase.ErrForbidden)
 
 		// Act
 		handler.HandleRequestByID(rec, req)
@@ -316,12 +348,13 @@ func TestRequestHandler_UpdateRequest(t *testing.T) {
 		handler := NewRequestHandler(mockUC)
 
 		req := httptest.NewRequest(http.MethodPatch, "/api/requests/invalid-id", bytes.NewBufferString("{}"))
-		ctx := context.WithValue(req.Context(), middleware.UserRoleKey, string(domain.RoleHandler))
+		ctx := context.WithValue(req.Context(), middleware.UserIDKey, "user-123")
+		ctx = context.WithValue(ctx, middleware.UserRoleKey, string(domain.RoleHandler))
 		req = req.WithContext(ctx)
 
 		rec := httptest.NewRecorder()
 
-		mockUC.On("Update", mock.Anything, "invalid-id", mock.Anything).Return(nil, usecase.ErrRequestNotFound)
+		mockUC.On("Update", mock.Anything, "invalid-id", mock.Anything, "user-123", string(domain.RoleHandler)).Return(nil, usecase.ErrRequestNotFound)
 
 		// Act
 		handler.HandleRequestByID(rec, req)

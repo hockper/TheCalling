@@ -24,4 +24,16 @@ scope?: ListRequestsScope;
  * Filter requests by assignee ID. Handlers only.
  */
 assignee_id?: string;
+/**
+ * Keyword to search in title and description.
+ */
+search?: string;
+/**
+ * Filter requests by creator IDs. Handlers only.
+ */
+creator_id?: string[];
+/**
+ * Filter requests by multiple priorities.
+ */
+priority?: string[];
 };
