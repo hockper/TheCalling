@@ -34,6 +34,14 @@ test.describe('Authentication and Redirection Flow', () => {
       });
     });
 
+    await page.route('**/api/requests*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: [], total: 0 }),
+      });
+    });
+
     // Act: Navigate and log in
     await page.goto('/');
     await page.fill('input[type="email"]', 'requester@thecalling.com');
@@ -88,6 +96,22 @@ test.describe('Authentication and Redirection Flow', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ status: 'ok', database: 'connected', redis: 'connected' }),
+      });
+    });
+
+    await page.route('**/api/requests*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: [], total: 0 }),
+      });
+    });
+
+    await page.route('**/api/users*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
       });
     });
 

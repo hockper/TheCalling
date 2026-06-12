@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { getApiRequests, updateRequest, listUsers } from '../../../services/api';
 import { KanbanBoard } from '../../../components/kanban/KanbanBoard';
 import { ToggleSwitch } from '../../../components/common/ToggleSwitch';
+import { DebouncedInput } from '../../../components/DebouncedInput';
+import { MultiSelect } from '../../../components/MultiSelect';
+import { RequestDetailModal } from '../../../components/RequestDetailModal';
 import type { ServiceRequest } from '../../../services/api/model/serviceRequest';
 
 const PAGE_SIZE = 500;
@@ -16,15 +19,30 @@ export default function HandlerDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewAll, setViewAll] = useState(false);
+  const [search, setSearch] = useState('');
+  const [selectedRequesters, setSelectedRequesters] = useState<string[]>([]);
+  const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
+  const [page, setPage] = useState(1);
+  const [allUsers, setAllUsers] = useState<{ id: string; name: string }[]>([]);
   const [usersMap, setUsersMap] = useState<Record<string, string>>({});
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
-  const fetchData = useCallback(async (all: boolean) => {
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, selectedRequesters, selectedPriorities, viewAll]);
+
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await getApiRequests({ 
         limit: PAGE_SIZE, 
-        scope: all ? 'all' : 'me' 
+        offset: (page - 1) * PAGE_SIZE || undefined,
+        scope: viewAll ? 'all' : 'me',
+        search: search || undefined,
+        creator_id: selectedRequesters.length > 0 ? selectedRequesters : undefined,
+        priority: selectedPriorities.length > 0 ? selectedPriorities : undefined
       });
       setRequests(res.data.data || []);
       setTotal(res.data.total || 0);
@@ -33,27 +51,32 @@ export default function HandlerDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [viewAll, search, selectedRequesters, selectedPriorities, page]);
 
   useEffect(() => {
-    fetchData(viewAll);
-  }, [viewAll, fetchData]);
+    fetchData();
+  }, [fetchData]);
 
   useEffect(() => {
     async function fetchUsers() {
       try {
-        const res = await listUsers({ role: 'handler' });
+        const res = await listUsers();
         if (res.data) {
           const map: Record<string, string> = {};
+          const usersList: { id: string; name: string }[] = [];
           res.data.forEach((u: any) => {
             if (u.id && u.name) {
               map[u.id] = u.name;
+              if (u.role === 'requester') {
+                usersList.push({ id: u.id, name: u.name });
+              }
             }
           });
           setUsersMap(map);
+          setAllUsers(usersList);
         }
       } catch (err) {
-        console.error('Failed to load users for assignee mapping:', err);
+        console.error('Failed to load users:', err);
       }
     }
     fetchUsers();
@@ -66,10 +89,10 @@ export default function HandlerDashboardPage() {
         prev.map((req) => (req.id === id ? { ...req, status: newStatus as any } : req))
       );
       await updateRequest(id, { status: newStatus as any });
-      fetchData(viewAll);
+      fetchData();
     } catch (err: any) {
       setError(err.response?.data?.error || err.message || 'Failed to update status');
-      fetchData(viewAll);
+      fetchData();
     }
   };
 
@@ -92,6 +115,31 @@ export default function HandlerDashboardPage() {
           </div>
         </div>
 
+        <div style={styles.filterBar}>
+          <DebouncedInput
+            value={search}
+            onChange={(val) => setSearch(val)}
+            placeholder="Search requests..."
+            style={styles.searchInput}
+          />
+          <MultiSelect
+            options={allUsers.map((u) => ({ value: u.id, label: u.name }))}
+            selectedValues={selectedRequesters}
+            onChange={(vals) => setSelectedRequesters(vals)}
+            placeholder="Filter by Requester"
+          />
+          <MultiSelect
+            options={[
+              { value: 'low', label: 'Low' },
+              { value: 'medium', label: 'Medium' },
+              { value: 'high', label: 'High' }
+            ]}
+            selectedValues={selectedPriorities}
+            onChange={(vals) => setSelectedPriorities(vals)}
+            placeholder="Filter by Priority"
+          />
+        </div>
+
         {error && (
           <div style={styles.errorBanner}>
             <strong>Error:</strong> {error}
@@ -108,14 +156,53 @@ export default function HandlerDashboardPage() {
         )}
 
         {!loading && requests.length > 0 && (
-          <KanbanBoard
-            requests={requests}
-            onStatusChange={handleStatusChange}
-            onCardClick={(id) => router.push(`/handler/requests/${id}`)}
-            usersMap={usersMap}
-          />
+          <>
+            <KanbanBoard
+              requests={requests}
+              onStatusChange={handleStatusChange}
+              onCardClick={(id) => setSelectedRequestId(id)}
+              usersMap={usersMap}
+            />
+            
+            <div style={styles.pagination}>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                style={{
+                  ...styles.pageButton,
+                  ...(page === 1 ? styles.pageButtonDisabled : {}),
+                }}
+              >
+                Previous
+              </button>
+              <span style={styles.pageInfo}>
+                Page {page} of {Math.max(1, Math.ceil(total / PAGE_SIZE))}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(Math.ceil(total / PAGE_SIZE), p + 1))}
+                disabled={page >= Math.ceil(total / PAGE_SIZE)}
+                style={{
+                  ...styles.pageButton,
+                  ...(page >= Math.ceil(total / PAGE_SIZE) ? styles.pageButtonDisabled : {}),
+                }}
+              >
+                Next
+              </button>
+            </div>
+          </>
         )}
       </div>
+      {selectedRequestId && (
+        <RequestDetailModal
+          id={selectedRequestId}
+          onClose={() => {
+            setSelectedRequestId(null);
+            fetchData();
+          }}
+        />
+      )}
     </main>
   );
 }
@@ -131,6 +218,27 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#e2e8f0',
     padding: '2rem',
     paddingTop: '4rem',
+  },
+  filterBar: {
+    display: 'flex',
+    gap: '1rem',
+    alignItems: 'center',
+    marginBottom: '2rem',
+    background: 'rgba(255, 255, 255, 0.02)',
+    border: '1px solid rgba(255, 255, 255, 0.05)',
+    borderRadius: '16px',
+    padding: '1rem 1.5rem',
+  },
+  searchInput: {
+    flex: 1,
+    background: 'rgba(0, 0, 0, 0.2)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '10px',
+    padding: '0.75rem 1rem',
+    color: '#f8fafc',
+    fontSize: '0.95rem',
+    outline: 'none',
+    transition: 'all 0.2s ease',
   },
   glassCard: {
     background: 'rgba(255, 255, 255, 0.03)',
