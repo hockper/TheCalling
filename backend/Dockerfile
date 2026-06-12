@@ -13,6 +13,7 @@ FROM base AS builder
 RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/server/main.go
 
 FROM alpine:3.20 AS runner
+RUN apk upgrade --no-cache
 WORKDIR /app
 COPY --from=builder /app/server .
 EXPOSE 8080
