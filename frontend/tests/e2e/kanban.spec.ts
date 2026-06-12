@@ -15,13 +15,14 @@ test.describe('Kanban Board E2E Flow', () => {
       });
     });
 
-    // Mock list users for assignee mappings
-    await page.route('**/api/users?role=handler', async (route) => {
+    // Mock list users for assignee mappings and filters
+    await page.route('**/api/users*', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([
-          { id: 'handler-uuid-123', name: 'John Handler', email: 'handler@thecalling.com', role: 'handler' }
+          { id: 'handler-uuid-123', name: 'John Handler', email: 'handler@thecalling.com', role: 'handler' },
+          { id: 'requester-uuid-456', name: 'Bob Requester', email: 'requester@thecalling.com', role: 'requester' }
         ]),
       });
     });
@@ -139,13 +140,14 @@ test.describe('Kanban Board E2E Flow', () => {
       });
     });
 
-    // Mock list users for assignee mappings
-    await page.route('**/api/users?role=handler', async (route) => {
+    // Mock list users for assignee mappings and filters
+    await page.route('**/api/users*', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([
-          { id: 'handler-uuid-123', name: 'John Handler', email: 'handler@thecalling.com', role: 'handler' }
+          { id: 'handler-uuid-123', name: 'John Handler', email: 'handler@thecalling.com', role: 'handler' },
+          { id: 'requester-uuid-456', name: 'Bob Requester', email: 'requester@thecalling.com', role: 'requester' }
         ]),
       });
     });
