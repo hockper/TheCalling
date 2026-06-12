@@ -127,6 +127,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '12px',
     padding: '0.2rem 0.5rem',
     maxWidth: '120px',
+    minWidth: 0,
   },
   assigneeIcon: {
     fontSize: '0.8rem',
@@ -138,5 +139,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    minWidth: 0,
   },
 };
