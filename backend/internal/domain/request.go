@@ -99,9 +99,11 @@ type UpdateRequestInput struct {
 type ListRequestsFilter struct {
 	Limit      int
 	Offset     int
-	CreatorID  *string // If set, only returns requests from this creator
 	AssigneeID *string // If set, only returns requests assigned to this user
 	Scope      string  // "me" or "all"
+	Search     string
+	CreatorIDs []string
+	Priorities []string
 }
 
 // RequestListResult holds a paginated list of service requests and the total count.
@@ -131,5 +133,5 @@ type RequestUsecase interface {
 	Create(ctx context.Context, input CreateRequestInput) (*ServiceRequest, error)
 	GetByID(ctx context.Context, id string, userID string, userRole string) (*ServiceRequest, error)
 	List(ctx context.Context, filter ListRequestsFilter, userRole string) (*RequestListResult, error)
-	Update(ctx context.Context, id string, input UpdateRequestInput) (*ServiceRequest, error)
+	Update(ctx context.Context, id string, input UpdateRequestInput, userID string, userRole string) (*ServiceRequest, error)
 }

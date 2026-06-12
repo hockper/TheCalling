@@ -222,7 +222,7 @@ func TestRequestUsecase_Update(t *testing.T) {
 		mockReqRepo.On("Update", mock.Anything, "req-1", input).Return(updated, nil)
 
 		// Act
-		result, err := uc.Update(context.Background(), "req-1", input)
+		result, err := uc.Update(context.Background(), "req-1", input, "handler-1", string(domain.RoleHandler))
 
 		// Assert
 		assert.NoError(t, err)
@@ -240,7 +240,7 @@ func TestRequestUsecase_Update(t *testing.T) {
 		mockReqRepo.On("GetByID", mock.Anything, "req-absent").Return(nil, nil)
 
 		// Act
-		_, err := uc.Update(context.Background(), "req-absent", domain.UpdateRequestInput{})
+		_, err := uc.Update(context.Background(), "req-absent", domain.UpdateRequestInput{}, "handler-1", string(domain.RoleHandler))
 
 		// Assert
 		assert.ErrorIs(t, err, ErrRequestNotFound)
@@ -258,7 +258,7 @@ func TestRequestUsecase_Update(t *testing.T) {
 		input := domain.UpdateRequestInput{Priority: &invalidPriority}
 
 		// Act
-		_, err := uc.Update(context.Background(), "req-1", input)
+		_, err := uc.Update(context.Background(), "req-1", input, "handler-1", string(domain.RoleHandler))
 
 		// Assert
 		assert.ErrorIs(t, err, ErrInvalidPriority)
@@ -358,7 +358,7 @@ func TestRequestUsecase_Update_AdditionalBranches(t *testing.T) {
 		input := domain.UpdateRequestInput{Status: &invalidStatus}
 
 		// Act
-		_, err := uc.Update(context.Background(), "req-1", input)
+		_, err := uc.Update(context.Background(), "req-1", input, "handler-1", string(domain.RoleHandler))
 
 		// Assert
 		assert.ErrorIs(t, err, ErrInvalidStatus)
@@ -378,7 +378,7 @@ func TestRequestUsecase_Update_AdditionalBranches(t *testing.T) {
 		mockUserRepo.On("GetByID", mock.Anything, "missing-handler").Return(nil, nil)
 
 		// Act
-		_, err := uc.Update(context.Background(), "req-1", input)
+		_, err := uc.Update(context.Background(), "req-1", input, "handler-1", string(domain.RoleHandler))
 
 		// Assert
 		assert.ErrorIs(t, err, ErrAssigneeNotFound)

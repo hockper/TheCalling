@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { getApiRequestById } from '../../../../services/api';
+import { getApiRequestById, patchApiRequest } from '../../../../services/api';
 import type { ServiceRequest } from '../../../../services/api/model/serviceRequest';
 
 const priorityBadge = (priority: string | undefined): React.CSSProperties => {
@@ -51,6 +51,7 @@ export default function RequesterRequestDetailPage() {
   const [request, setRequest] = useState<ServiceRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     const fetchRequest = async () => {
@@ -65,6 +66,19 @@ export default function RequesterRequestDetailPage() {
     };
     fetchRequest();
   }, [id]);
+
+  const handleCloseRequest = async () => {
+    if (!confirm('Are you sure you want to close this request?')) return;
+    try {
+      setClosing(true);
+      const res = await patchApiRequest(id, { status: 'closed' } as any);
+      setRequest(res.data);
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to close request');
+    } finally {
+      setClosing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -99,11 +113,22 @@ export default function RequesterRequestDetailPage() {
         </button>
 
         <div style={styles.headerRow}>
-          <h1 style={styles.title}>{request.title}</h1>
-          <div style={styles.badges}>
-            <span style={priorityBadge(request.priority)}>{request.priority || 'low'}</span>
-            <span style={statusBadge(request.status)}>{(request.status || 'open').replace('_', ' ')}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <h1 style={styles.title}>{request.title}</h1>
+            <div style={styles.badges}>
+              <span style={priorityBadge(request.priority)}>{request.priority || 'low'}</span>
+              <span style={statusBadge(request.status)}>{(request.status || 'open').replace('_', ' ')}</span>
+            </div>
           </div>
+          {request.status !== 'closed' && (
+            <button
+              onClick={handleCloseRequest}
+              disabled={closing}
+              style={{ ...styles.closeBtn, opacity: closing ? 0.7 : 1 }}
+            >
+              {closing ? 'Closing...' : 'Close Request'}
+            </button>
+          )}
         </div>
 
         <div style={styles.detailGrid}>
@@ -259,5 +284,16 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '1rem 1.5rem',
     color: '#f87171',
     fontSize: '0.95rem',
+  },
+  closeBtn: {
+    padding: '0.5rem 1rem',
+    borderRadius: '8px',
+    background: 'rgba(239, 68, 68, 0.15)',
+    color: '#f87171',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    transition: 'all 0.2s',
   },
 };

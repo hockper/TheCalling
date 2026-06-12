@@ -2,6 +2,7 @@ import React from 'react';
 import Navbar from '../components/Navbar';
 import { AuthProvider } from '../context/AuthContext';
 import '../services/api';
+import './globals.css';
 
 export const metadata = {
   title: 'The Calling Dashboard',

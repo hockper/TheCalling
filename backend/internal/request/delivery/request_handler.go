@@ -95,7 +95,11 @@ func (h *RequestHandler) listRequests(w http.ResponseWriter, r *http.Request) {
 
 	// Requesters can only see their own requests
 	if userRole == string(domain.RoleRequester) {
-		filter.CreatorID = &userID
+		filter.CreatorIDs = []string{userID}
+	} else {
+		if queryCreatorIDs, ok := r.URL.Query()["creator_id"]; ok && len(queryCreatorIDs) > 0 {
+			filter.CreatorIDs = queryCreatorIDs
+		}
 	}
 
 	scope := r.URL.Query().Get("scope")
@@ -112,6 +116,16 @@ func (h *RequestHandler) listRequests(w http.ResponseWriter, r *http.Request) {
 	// If assignee_id query param is explicitly provided, override
 	if queryAssigneeID := r.URL.Query().Get("assignee_id"); queryAssigneeID != "" {
 		filter.AssigneeID = &queryAssigneeID
+	}
+
+	filter.Search = r.URL.Query().Get("search")
+
+	if queryPriorities, ok := r.URL.Query()["priority"]; ok && len(queryPriorities) > 0 {
+		lowerPriorities := make([]string, len(queryPriorities))
+		for i, p := range queryPriorities {
+			lowerPriorities[i] = strings.ToLower(p)
+		}
+		filter.Priorities = lowerPriorities
 	}
 
 	result, err := h.usecase.List(r.Context(), filter, userRole)
@@ -140,10 +154,7 @@ func (h *RequestHandler) getRequest(w http.ResponseWriter, r *http.Request, id s
 // updateRequest handles PATCH /api/requests/{id}.
 func (h *RequestHandler) updateRequest(w http.ResponseWriter, r *http.Request, id string) {
 	userRole := middleware.GetUserRole(r.Context())
-	if userRole != string(domain.RoleHandler) {
-		writeJSON(w, http.StatusForbidden, map[string]string{"error": "only handlers can edit requests"})
-		return
-	}
+	userID := middleware.GetUserID(r.Context())
 
 	var input domain.UpdateRequestInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -151,7 +162,7 @@ func (h *RequestHandler) updateRequest(w http.ResponseWriter, r *http.Request, i
 		return
 	}
 
-	req, err := h.usecase.Update(r.Context(), id, input)
+	req, err := h.usecase.Update(r.Context(), id, input, userID, userRole)
 	if err != nil {
 		handleUsecaseError(w, err)
 		return

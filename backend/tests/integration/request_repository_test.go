@@ -178,7 +178,7 @@ func TestPostgresRequestRepository_Integration(t *testing.T) {
 		assert.Len(t, list.Data, 3)
 
 		// 2. Filter by creator
-		list, err = repo.List(ctx, domain.ListRequestsFilter{CreatorID: &r1, Limit: 10, Offset: 0})
+		list, err = repo.List(ctx, domain.ListRequestsFilter{CreatorIDs: []string{r1}, Limit: 10, Offset: 0})
 		assert.NoError(t, err)
 		assert.Equal(t, 2, list.Total)
 		assert.Len(t, list.Data, 2)
@@ -194,5 +194,46 @@ func TestPostgresRequestRepository_Integration(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 3, list.Total)
 		assert.Len(t, list.Data, 1)
+
+		// 5. Search text (ILIKE) on title and description
+		reqSearch1 := &domain.ServiceRequest{Title: "Unique Title SearchMe", Description: "Some description here", CreatorID: r1, Priority: domain.PriorityLow}
+		err = repo.Create(ctx, reqSearch1)
+		assert.NoError(t, err)
+
+		reqSearch2 := &domain.ServiceRequest{Title: "Another Request", Description: "Unique Description FindMe", CreatorID: r1, Priority: domain.PriorityLow}
+		err = repo.Create(ctx, reqSearch2)
+		assert.NoError(t, err)
+
+		// Search title (case-insensitive)
+		list, err = repo.List(ctx, domain.ListRequestsFilter{Search: "searchme", Limit: 10, Offset: 0})
+		assert.NoError(t, err)
+		assert.Equal(t, 1, list.Total)
+		assert.Equal(t, "Unique Title SearchMe", list.Data[0].Title)
+
+		// Search description (case-insensitive)
+		list, err = repo.List(ctx, domain.ListRequestsFilter{Search: "findme", Limit: 10, Offset: 0})
+		assert.NoError(t, err)
+		assert.Equal(t, 1, list.Total)
+		assert.Equal(t, "Another Request", list.Data[0].Title)
+
+		// 6. Filter by multiple creator IDs (CreatorIDs array)
+		list, err = repo.List(ctx, domain.ListRequestsFilter{CreatorIDs: []string{r1, r2}, Limit: 10, Offset: 0})
+		assert.NoError(t, err)
+		assert.Equal(t, 5, list.Total)
+
+		list, err = repo.List(ctx, domain.ListRequestsFilter{CreatorIDs: []string{r2}, Limit: 10, Offset: 0})
+		assert.NoError(t, err)
+		assert.Equal(t, 1, list.Total)
+		assert.Equal(t, r2, list.Data[0].CreatorID)
+
+		// 7. Filter by multiple priorities (Priorities array)
+		list, err = repo.List(ctx, domain.ListRequestsFilter{Priorities: []string{"low", "medium"}, Limit: 10, Offset: 0})
+		assert.NoError(t, err)
+		assert.Equal(t, 4, list.Total)
+
+		list, err = repo.List(ctx, domain.ListRequestsFilter{Priorities: []string{"high"}, Limit: 10, Offset: 0})
+		assert.NoError(t, err)
+		assert.Equal(t, 1, list.Total)
+		assert.Equal(t, domain.PriorityHigh, list.Data[0].Priority)
 	})
 }
